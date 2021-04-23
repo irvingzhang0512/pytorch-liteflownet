@@ -2,6 +2,9 @@
 
 import torch
 
+# install cupy
+# pip install cupy-cuda100
+# pip install cupy-cuda110
 import cupy
 import math
 import re
