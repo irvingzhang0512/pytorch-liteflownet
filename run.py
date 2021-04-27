@@ -17,12 +17,14 @@ torch.set_grad_enabled(False)
 
 torch.backends.cudnn.enabled = True
 
-output_video_path = 'gt-pred.mp4'
-# input_video_path = "/ssd01/zhangyiyang/basketball/data/basketball/raw/videos/0108/2.mp4"  # noqa
-input_video_path = "gt.mp4"  # noqa
+output_video_path = 'basketball-flow.mp4'
+input_video_path = "/ssd01/zhangyiyang/basketball/data/basketball/raw/videos/0108/2.mp4"  # noqa
+# input_video_path = "gt.mp4"  # noqa
 arguments_strModel = 'default'  # 'default', or 'kitti', or 'sintel'
-output_height, output_width = 480, 960
-show = True
+# output_height, output_width = 480, 960
+output_height, output_width = 544, 960
+show = False  # cv2.imshow
+concat_raw = True # concat raw image and flow result with height
 
 backwarp_tenGrid = {}
 
@@ -718,10 +720,13 @@ if __name__ == '__main__':
     if output_video_path is None:
         writer = None
     else:
+        if concat_raw:
+            output_size = (output_width, output_height * 2)
+        else:
+            output_size = (output_width, output_height)
         writer = cv2.VideoWriter(output_video_path,
-                                 cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'),
-                                 cap.get(cv2.CAP_PROP_FPS),
-                                 (output_width, output_height * 2))
+                                 cv2.VideoWriter_fourcc(*'mp4v'),
+                                 cap.get(cv2.CAP_PROP_FPS), output_size)
 
     previous = None
     while True:
@@ -744,18 +749,19 @@ if __name__ == '__main__':
         # 光流结果可视化
         img = flow2img(flow.numpy().transpose(1, 2, 0).astype(np.float32))
 
-        # 根据 height 拼接
-        concat = np.concatenate([raw, img], axis=0)
-        
+        if concat_raw:
+            # 根据 height 拼接
+            img = np.concatenate([raw, img[:, :, ::-1]], axis=0)
+
         # 结果输出
         if writer:
             writer.write(img)
         if show:
-            cv2.imshow("demo", concat[:, :, ::-1])
+            cv2.imshow("demo", img)
             cv2.waitKey(1)
 
         previous = current
     if writer:
-        writer.close()
+        writer.release()
     if show:
         cv2.destroyAllWindows()
